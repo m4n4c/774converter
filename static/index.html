@@ -6,72 +6,281 @@
 <title>774converter(名無しコンバーター)</title>
 <style>
   :root {
-    --bg: #f4f5f7; --panel: #ffffff; --border: #dcdfe4;
-    --text: #24292f; --sub: #6b7280; --accent: #2563eb; --accent-h: #1d4ed8;
-    --green: #16a34a; --red: #dc2626;
+    --bg: #f5f5f7;
+    --panel: #ffffff;
+    --border: rgba(0, 0, 0, 0.08);
+    --hairline: rgba(0, 0, 0, 0.06);
+    --text: #1d1d1f;
+    --sub: #86868b;
+    --accent: #0071e3;
+    --accent-h: #0077ed;
+    --green: #248a3d;
+    --green-bg: rgba(52, 199, 89, 0.14);
+    --red: #d70015;
+    --red-bg: rgba(255, 59, 48, 0.12);
+    --seg-bg: rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161617;
+      --panel: #1d1d1f;
+      --border: rgba(255, 255, 255, 0.12);
+      --hairline: rgba(255, 255, 255, 0.09);
+      --text: #f5f5f7;
+      --sub: #a1a1a6;
+      --accent: #0a84ff;
+      --accent-h: #2492ff;
+      --green: #30d158;
+      --green-bg: rgba(48, 209, 88, 0.16);
+      --red: #ff453a;
+      --red-bg: rgba(255, 69, 58, 0.16);
+      --seg-bg: rgba(255, 255, 255, 0.08);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Hiragino Sans", "Yu Gothic UI", sans-serif; background: var(--bg); color: var(--text); }
-  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
-  header h1 { font-size: 18px; margin: 0; }
-  #ginza-badge { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: #eee; color: var(--sub); }
-  #ginza-badge.on { background: #dcfce7; color: var(--green); }
-  #ginza-badge.off { background: #fee2e2; color: var(--red); }
-  .tabs { display: flex; gap: 4px; padding: 12px 24px 0; }
-  .tab { padding: 10px 24px; border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; background: #e9ebee; cursor: pointer; font-size: 15px; }
-  .tab.active { background: var(--panel); font-weight: 600; }
-  .page { display: none; padding: 20px 24px; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ---- ヘッダー ---- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 16px 32px;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header .subtitle { font-size: 13px; color: var(--sub); }
+  #ginza-badge {
+    margin-left: auto;
+    font-size: 12px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: var(--seg-bg);
+    color: var(--sub);
+    white-space: nowrap;
+  }
+  #ginza-badge.on { background: var(--green-bg); color: var(--green); }
+  #ginza-badge.off { background: var(--red-bg); color: var(--red); }
+  header .local-note { font-size: 12px; color: var(--sub); white-space: nowrap; }
+
+  main { max-width: 880px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  /* ---- セグメンテッドコントロール ---- */
+  .tabs {
+    display: inline-flex;
+    background: var(--seg-bg);
+    border-radius: 12px;
+    padding: 3px;
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 7px 26px;
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--sub);
+    cursor: pointer;
+    transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--panel);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .page { display: none; }
   .page.active { display: block; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 20px; margin-bottom: 16px; }
-  textarea { width: 100%; min-height: 180px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 14px; font-family: inherit; resize: vertical; }
-  button { border: none; border-radius: 6px; padding: 9px 20px; font-size: 14px; cursor: pointer; background: var(--accent); color: #fff; }
+
+  /* ---- カード ---- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    padding: 26px 28px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+
+  /* ---- 入力 ---- */
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 15px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.7;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  textarea:focus, input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 18%, transparent);
+    background: var(--panel);
+  }
+  textarea[readonly] { background: var(--bg); }
+  input[type="text"], select {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+  input[type="file"] { font-size: 13px; color: var(--sub); }
+
+  /* ---- ボタン ---- */
+  button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    transition: background 0.18s ease, transform 0.1s ease, opacity 0.18s ease;
+  }
   button:hover { background: var(--accent-h); }
-  button.secondary { background: #e5e7eb; color: var(--text); }
-  button.secondary:hover { background: #d1d5db; }
-  button:disabled { background: #cbd5e1; cursor: default; }
-  .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14px; }
-  th, td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; }
-  th { background: #f1f3f5; font-weight: 600; }
-  .type-chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #e0e7ff; }
+  button:active { transform: scale(0.97); }
+  button.secondary { background: var(--seg-bg); color: var(--text); }
+  button.secondary:hover { background: color-mix(in srgb, var(--seg-bg) 60%, var(--border)); }
+  button:disabled { opacity: 0.45; cursor: default; transform: none; }
+
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ---- ドロップゾーン ---- */
+  .drop {
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    color: var(--sub);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+  .drop:hover { border-color: var(--sub); }
+  .drop.over {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    color: var(--accent);
+  }
+  .drop .formats { font-size: 11.5px; opacity: 0.75; }
+
+  /* ---- テーブル ---- */
+  table { border-collapse: collapse; width: 100%; margin-top: 4px; font-size: 14px; }
+  th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sub);
+    letter-spacing: 0.03em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--hairline); }
+  tr:last-child td { border-bottom: none; }
+
+  /* ---- 種類チップ(色付きドット) ---- */
+  .type-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--sub);
+    white-space: nowrap;
+  }
+  .type-chip::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sub);
+  }
+  .type-chip.t-person::before { background: #0a84ff; }
+  .type-chip.t-org::before { background: #bf5af2; }
+  .type-chip.t-address::before { background: #30d158; }
+  .type-chip.t-phone::before { background: #ff9f0a; }
+  .type-chip.t-email::before { background: #64d2ff; }
+  .type-chip.t-postal::before { background: #ffd60a; }
+  .type-chip.t-other::before { background: #98989d; }
+
   .hint { color: var(--sub); font-size: 13px; margin-top: 8px; }
   .ok-msg { color: var(--green); font-size: 13px; }
-  h2 { font-size: 16px; margin: 0 0 10px; }
-  input[type="text"], select { border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 14px; }
-  .drop { border: 2px dashed var(--border); border-radius: 8px; padding: 14px; text-align: center; color: var(--sub); font-size: 13px; margin-bottom: 10px; cursor: pointer; }
-  .drop.over { border-color: var(--accent); background: #eff6ff; }
 </style>
 </head>
 <body>
 <header>
-  <h1>🔒 774converter</h1>
+  <h1>774converter</h1>
+  <span class="subtitle">名無しコンバーター</span>
   <span id="ginza-badge">確認中…</span>
-  <span class="hint" style="margin-left:auto">完全ローカル動作・外部通信なし</span>
+  <span class="local-note">完全ローカル動作</span>
 </header>
 
+<main>
 <div class="tabs">
-  <div class="tab active" data-page="anon">1. 匿名化する</div>
-  <div class="tab" data-page="restore">2. 元に戻す</div>
+  <div class="tab active" data-page="anon">匿名化する</div>
+  <div class="tab" data-page="restore">元に戻す</div>
 </div>
 
 <!-- ============ 匿名化タブ ============ -->
 <div class="page active" id="page-anon">
   <div class="panel">
     <h2>元のテキスト</h2>
-    <div class="drop" id="drop-zone">ここにファイルをドロップ、またはクリックして選択(.docx / .xlsx / .pdf / .txt / .md / .csv)<br>
-      <span style="font-size:12px">※ Word・Excel・PDFはテキストのみ取り出します(書式は失われます)</span></div>
+    <div class="drop" id="drop-zone">ファイルをドロップ、またはクリックして選択<br>
+      <span class="formats">.docx / .xlsx / .pdf / .txt / .md / .csv — Word・Excel・PDFはテキストのみ取り出します</span></div>
     <input type="file" id="file-input" accept=".txt,.md,.csv,.tsv,.log,.docx,.xlsx,.xlsm,.pdf" style="display:none">
     <textarea id="src-text" placeholder="匿名化したいテキストを貼り付けてください"></textarea>
     <div class="row">
       <button id="btn-detect">個人情報を検出</button>
-      <span id="detect-status" class="hint"></span>
+      <span id="detect-status" class="hint" style="margin-top:0"></span>
     </div>
   </div>
 
   <div class="panel" id="review-panel" style="display:none">
     <h2>検出結果の確認 — 置き換えるものにチェック</h2>
     <table id="items-table">
-      <thead><tr><th style="width:40px"></th><th>種類</th><th>元の文字列</th><th>件数</th></tr></thead>
+      <thead><tr><th style="width:36px"></th><th>種類</th><th>元の文字列</th><th>件数</th></tr></thead>
       <tbody></tbody>
     </table>
     <div class="row">
@@ -100,7 +309,7 @@
       <button class="secondary" id="btn-dl-mapping">対応表をダウンロード</button>
       <span class="ok-msg" id="save-info"></span>
     </div>
-    <h2 style="margin-top:18px">対応表(このPCにのみ保存されます)</h2>
+    <h2 style="margin-top:26px">対応表(このPCにのみ保存されます)</h2>
     <table id="mapping-table">
       <thead><tr><th>置き換え後</th><th>元の文字列</th><th>種類</th></tr></thead>
       <tbody></tbody>
@@ -115,12 +324,12 @@
     <div class="row" style="margin-top:0">
       <select id="mapping-select" style="min-width:320px"></select>
       <button class="secondary" id="btn-reload-mappings">更新</button>
-      <span class="hint">または</span>
+      <span class="hint" style="margin-top:0">または</span>
       <input type="file" id="mapping-file" accept=".json">
     </div>
     <div id="loaded-mapping-info" class="hint"></div>
 
-    <h2 style="margin-top:18px">処理済みテキスト(AIの回答など)</h2>
+    <h2 style="margin-top:26px">処理済みテキスト(AIの回答など)</h2>
     <textarea id="processed-text" placeholder="ラベル入りのテキストを貼り付けてください"></textarea>
     <div class="row">
       <button id="btn-restore">元の名前に戻す</button>
@@ -135,10 +344,12 @@
     </div>
   </div>
 </div>
+</main>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const TYPE_JA = { person: "人名", org: "組織", address: "住所", phone: "電話番号", email: "メール", postal: "郵便番号", other: "その他" };
+const typeChip = (type) => `<span class="type-chip t-${type}">${TYPE_JA[type] || type}</span>`;
 
 // ---- タブ切り替え ----
 document.querySelectorAll(".tab").forEach(tab => {
@@ -208,7 +419,7 @@ function renderItems() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td style="text-align:center"><input type="checkbox" data-i="${i}" checked></td>
-      <td><span class="type-chip">${TYPE_JA[item.type] || item.type}</span></td>
+      <td>${typeChip(item.type)}</td>
       <td></td>
       <td>${item.count}</td>`;
     tr.children[2].textContent = item.surface;
@@ -245,7 +456,7 @@ $("#btn-anonymize").onclick = async () => {
   tbody.innerHTML = "";
   data.mapping.forEach(m => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><b></b></td><td></td><td><span class="type-chip">${TYPE_JA[m.type] || m.type}</span></td>`;
+    tr.innerHTML = `<td><b></b></td><td></td><td>${typeChip(m.type)}</td>`;
     tr.children[0].firstChild.textContent = m.label;
     tr.children[1].textContent = m.original;
     tbody.appendChild(tr);
