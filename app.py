@@ -36,7 +36,10 @@ class RestoreIn(BaseModel):
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    # アップデート後に古い画面がブラウザキャッシュに残らないようにする
+    return FileResponse(
+        STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"}
+    )
 
 
 @app.get("/api/health")
