@@ -58,8 +58,9 @@
 <div class="page active" id="page-anon">
   <div class="panel">
     <h2>元のテキスト</h2>
-    <div class="drop" id="drop-zone">ここにファイルをドロップ、またはクリックして選択(.txt / .md / .csv)</div>
-    <input type="file" id="file-input" accept=".txt,.md,.csv,.log" style="display:none">
+    <div class="drop" id="drop-zone">ここにファイルをドロップ、またはクリックして選択(.docx / .xlsx / .pdf / .txt / .md / .csv)<br>
+      <span style="font-size:12px">※ Word・Excel・PDFはテキストのみ取り出します(書式は失われます)</span></div>
+    <input type="file" id="file-input" accept=".txt,.md,.csv,.tsv,.log,.docx,.xlsx,.xlsm,.pdf" style="display:none">
     <textarea id="src-text" placeholder="匿名化したいテキストを貼り付けてください"></textarea>
     <div class="row">
       <button id="btn-detect">個人情報を検出</button>
@@ -163,10 +164,19 @@ dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("over"
 dropZone.ondragleave = () => dropZone.classList.remove("over");
 dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove("over"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); };
 fileInput.onchange = () => { if (fileInput.files[0]) readFile(fileInput.files[0]); };
-function readFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => { $("#src-text").value = reader.result; };
-  reader.readAsText(file, "UTF-8");
+async function readFile(file) {
+  $("#detect-status").textContent = `「${file.name}」を読み込み中…`;
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/extract", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "読み込みに失敗しました");
+    $("#src-text").value = data.text;
+    $("#detect-status").textContent = `「${file.name}」を読み込みました`;
+  } catch (e) {
+    $("#detect-status").textContent = "エラー: " + e.message;
+  }
 }
 
 // ---- 検出 ----

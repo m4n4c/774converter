@@ -6,12 +6,13 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import anonymizer
 import detector
+import extractor
 
 app = FastAPI(title="774converter")
 
@@ -41,6 +42,22 @@ def index():
 @app.get("/api/health")
 def health():
     return {"ok": True, "ginza": detector.ginza_available()}
+
+
+@app.post("/api/extract")
+async def extract(file: UploadFile = File(...)):
+    """添付ファイル(.docx / .xlsx / .pdf / テキスト系)からテキストを取り出す。"""
+    from pathlib import PurePosixPath
+
+    ext = PurePosixPath(file.filename or "").suffix.lower()
+    if ext and ext not in extractor.SUPPORTED_EXTENSIONS:
+        raise HTTPException(400, f"未対応のファイル形式です: {ext}")
+    data = await file.read()
+    try:
+        text = extractor.extract_text(file.filename or "", data)
+    except Exception:
+        raise HTTPException(400, "ファイルの読み込みに失敗しました")
+    return {"text": text, "filename": file.filename}
 
 
 @app.post("/api/detect")

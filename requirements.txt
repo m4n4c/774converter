@@ -2,3 +2,7 @@ fastapi
 uvicorn
 ginza
 ja-ginza
+python-multipart
+python-docx
+openpyxl
+pdfminer.six
