@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+ginza
+ja-ginza

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tokumeiapp",
+      "runtimeExecutable": ".venv/bin/uvicorn",
+      "runtimeArgs": ["app:app", "--port", "8756"],
+      "port": 8756
+    }
+  ]
+}

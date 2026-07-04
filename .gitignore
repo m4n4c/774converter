@@ -1,0 +1,10 @@
+# 対応表は個人情報の復元キー — 絶対にコミットしない
+mappings/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

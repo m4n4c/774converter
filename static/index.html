@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>774converter(名無しコンバーター)</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --border: #dcdfe4;
+    --text: #24292f; --sub: #6b7280; --accent: #2563eb; --accent-h: #1d4ed8;
+    --green: #16a34a; --red: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Hiragino Sans", "Yu Gothic UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; margin: 0; }
+  #ginza-badge { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: #eee; color: var(--sub); }
+  #ginza-badge.on { background: #dcfce7; color: var(--green); }
+  #ginza-badge.off { background: #fee2e2; color: var(--red); }
+  .tabs { display: flex; gap: 4px; padding: 12px 24px 0; }
+  .tab { padding: 10px 24px; border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; background: #e9ebee; cursor: pointer; font-size: 15px; }
+  .tab.active { background: var(--panel); font-weight: 600; }
+  .page { display: none; padding: 20px 24px; }
+  .page.active { display: block; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 20px; margin-bottom: 16px; }
+  textarea { width: 100%; min-height: 180px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 14px; font-family: inherit; resize: vertical; }
+  button { border: none; border-radius: 6px; padding: 9px 20px; font-size: 14px; cursor: pointer; background: var(--accent); color: #fff; }
+  button:hover { background: var(--accent-h); }
+  button.secondary { background: #e5e7eb; color: var(--text); }
+  button.secondary:hover { background: #d1d5db; }
+  button:disabled { background: #cbd5e1; cursor: default; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; }
+  th { background: #f1f3f5; font-weight: 600; }
+  .type-chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #e0e7ff; }
+  .hint { color: var(--sub); font-size: 13px; margin-top: 8px; }
+  .ok-msg { color: var(--green); font-size: 13px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  input[type="text"], select { border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 14px; }
+  .drop { border: 2px dashed var(--border); border-radius: 8px; padding: 14px; text-align: center; color: var(--sub); font-size: 13px; margin-bottom: 10px; cursor: pointer; }
+  .drop.over { border-color: var(--accent); background: #eff6ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔒 774converter</h1>
+  <span id="ginza-badge">確認中…</span>
+  <span class="hint" style="margin-left:auto">完全ローカル動作・外部通信なし</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-page="anon">1. 匿名化する</div>
+  <div class="tab" data-page="restore">2. 元に戻す</div>
+</div>
+
+<!-- ============ 匿名化タブ ============ -->
+<div class="page active" id="page-anon">
+  <div class="panel">
+    <h2>元のテキスト</h2>
+    <div class="drop" id="drop-zone">ここにファイルをドロップ、またはクリックして選択(.txt / .md / .csv)</div>
+    <input type="file" id="file-input" accept=".txt,.md,.csv,.log" style="display:none">
+    <textarea id="src-text" placeholder="匿名化したいテキストを貼り付けてください"></textarea>
+    <div class="row">
+      <button id="btn-detect">個人情報を検出</button>
+      <span id="detect-status" class="hint"></span>
+    </div>
+  </div>
+
+  <div class="panel" id="review-panel" style="display:none">
+    <h2>検出結果の確認 — 置き換えるものにチェック</h2>
+    <table id="items-table">
+      <thead><tr><th style="width:40px"></th><th>種類</th><th>元の文字列</th><th>件数</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row">
+      <input type="text" id="manual-text" placeholder="検出されなかった文字列を手動追加" style="flex:1; min-width:200px">
+      <select id="manual-type">
+        <option value="person">人名</option>
+        <option value="org">組織</option>
+        <option value="address">住所</option>
+        <option value="phone">電話番号</option>
+        <option value="email">メール</option>
+        <option value="postal">郵便番号</option>
+        <option value="other">その他</option>
+      </select>
+      <button class="secondary" id="btn-manual-add">追加</button>
+    </div>
+    <div class="row">
+      <button id="btn-anonymize">チェックした項目を置き換える</button>
+    </div>
+  </div>
+
+  <div class="panel" id="result-panel" style="display:none">
+    <h2>匿名化されたテキスト</h2>
+    <textarea id="anon-text" readonly></textarea>
+    <div class="row">
+      <button id="btn-copy-anon">コピー</button>
+      <button class="secondary" id="btn-dl-mapping">対応表をダウンロード</button>
+      <span class="ok-msg" id="save-info"></span>
+    </div>
+    <h2 style="margin-top:18px">対応表(このPCにのみ保存されます)</h2>
+    <table id="mapping-table">
+      <thead><tr><th>置き換え後</th><th>元の文字列</th><th>種類</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ 復元タブ ============ -->
+<div class="page" id="page-restore">
+  <div class="panel">
+    <h2>対応表を選択</h2>
+    <div class="row" style="margin-top:0">
+      <select id="mapping-select" style="min-width:320px"></select>
+      <button class="secondary" id="btn-reload-mappings">更新</button>
+      <span class="hint">または</span>
+      <input type="file" id="mapping-file" accept=".json">
+    </div>
+    <div id="loaded-mapping-info" class="hint"></div>
+
+    <h2 style="margin-top:18px">処理済みテキスト(AIの回答など)</h2>
+    <textarea id="processed-text" placeholder="ラベル入りのテキストを貼り付けてください"></textarea>
+    <div class="row">
+      <button id="btn-restore">元の名前に戻す</button>
+    </div>
+  </div>
+
+  <div class="panel" id="restore-result-panel" style="display:none">
+    <h2>復元されたテキスト</h2>
+    <textarea id="restored-text" readonly></textarea>
+    <div class="row">
+      <button id="btn-copy-restored">コピー</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const TYPE_JA = { person: "人名", org: "組織", address: "住所", phone: "電話番号", email: "メール", postal: "郵便番号", other: "その他" };
+
+// ---- タブ切り替え ----
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    $("#page-" + tab.dataset.page).classList.add("active");
+  };
+});
+
+// ---- GiNZA 状態表示 ----
+fetch("/api/health").then(r => r.json()).then(d => {
+  const b = $("#ginza-badge");
+  b.textContent = d.ginza ? "人名検出: 有効 (GiNZA)" : "人名検出: 無効(正規表現のみ)";
+  b.className = d.ginza ? "on" : "off";
+});
+
+// ---- ファイル読み込み ----
+const dropZone = $("#drop-zone"), fileInput = $("#file-input");
+dropZone.onclick = () => fileInput.click();
+dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("over"); };
+dropZone.ondragleave = () => dropZone.classList.remove("over");
+dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove("over"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); };
+fileInput.onchange = () => { if (fileInput.files[0]) readFile(fileInput.files[0]); };
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => { $("#src-text").value = reader.result; };
+  reader.readAsText(file, "UTF-8");
+}
+
+// ---- 検出 ----
+let detectedItems = [];
+$("#btn-detect").onclick = async () => {
+  const text = $("#src-text").value;
+  if (!text.trim()) { alert("テキストを入力してください"); return; }
+  $("#detect-status").textContent = "検出中…(初回は数十秒かかることがあります)";
+  $("#btn-detect").disabled = true;
+  try {
+    const res = await fetch("/api/detect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    const data = await res.json();
+    detectedItems = data.items;
+    renderItems();
+    $("#review-panel").style.display = "block";
+    $("#result-panel").style.display = "none";
+    $("#detect-status").textContent = detectedItems.length + " 件見つかりました";
+  } catch (e) {
+    $("#detect-status").textContent = "エラー: " + e;
+  } finally {
+    $("#btn-detect").disabled = false;
+  }
+};
+
+function renderItems() {
+  const tbody = $("#items-table tbody");
+  tbody.innerHTML = "";
+  detectedItems.forEach((item, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="text-align:center"><input type="checkbox" data-i="${i}" checked></td>
+      <td><span class="type-chip">${TYPE_JA[item.type] || item.type}</span></td>
+      <td></td>
+      <td>${item.count}</td>`;
+    tr.children[2].textContent = item.surface;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---- 手動追加 ----
+$("#btn-manual-add").onclick = () => {
+  const surface = $("#manual-text").value.trim();
+  if (!surface) return;
+  if (!$("#src-text").value.includes(surface)) { alert("元のテキストにその文字列が見つかりません"); return; }
+  if (detectedItems.some(it => it.surface === surface)) { alert("すでに一覧にあります"); return; }
+  const count = $("#src-text").value.split(surface).length - 1;
+  detectedItems.push({ surface, type: $("#manual-type").value, count });
+  $("#manual-text").value = "";
+  renderItems();
+};
+
+// ---- 置換実行 ----
+let currentMapping = [];
+$("#btn-anonymize").onclick = async () => {
+  const checked = [...document.querySelectorAll("#items-table input:checked")].map(cb => detectedItems[+cb.dataset.i]);
+  if (checked.length === 0) { alert("置き換える項目にチェックを入れてください"); return; }
+  const res = await fetch("/api/anonymize", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: $("#src-text").value, items: checked }),
+  });
+  const data = await res.json();
+  currentMapping = data.mapping;
+  $("#anon-text").value = data.text;
+  $("#save-info").textContent = data.saved_as ? `対応表を保存しました: mappings/${data.saved_as}` : "";
+  const tbody = $("#mapping-table tbody");
+  tbody.innerHTML = "";
+  data.mapping.forEach(m => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><b></b></td><td></td><td><span class="type-chip">${TYPE_JA[m.type] || m.type}</span></td>`;
+    tr.children[0].firstChild.textContent = m.label;
+    tr.children[1].textContent = m.original;
+    tbody.appendChild(tr);
+  });
+  $("#result-panel").style.display = "block";
+  $("#result-panel").scrollIntoView({ behavior: "smooth" });
+};
+
+$("#btn-copy-anon").onclick = () => copyText($("#anon-text"), $("#btn-copy-anon"));
+$("#btn-dl-mapping").onclick = () => {
+  const blob = new Blob([JSON.stringify({ created: new Date().toISOString(), items: currentMapping }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mapping.json";
+  a.click();
+};
+
+// ---- 復元タブ ----
+let restoreMapping = null;
+
+async function loadMappingList() {
+  const res = await fetch("/api/mappings");
+  const data = await res.json();
+  const sel = $("#mapping-select");
+  sel.innerHTML = '<option value="">— 保存済みの対応表から選択 —</option>';
+  data.mappings.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m.name;
+    opt.textContent = `${m.created}(${m.count}件)${m.title ? " " + m.title : ""}`;
+    sel.appendChild(opt);
+  });
+}
+loadMappingList();
+$("#btn-reload-mappings").onclick = loadMappingList;
+
+$("#mapping-select").onchange = async () => {
+  const name = $("#mapping-select").value;
+  if (!name) { restoreMapping = null; $("#loaded-mapping-info").textContent = ""; return; }
+  const res = await fetch("/api/mappings/" + encodeURIComponent(name));
+  const data = await res.json();
+  restoreMapping = data.items;
+  $("#loaded-mapping-info").textContent = `読み込みました: ${data.items.map(i => i.label).join("、")}`;
+};
+
+$("#mapping-file").onchange = () => {
+  const file = $("#mapping-file").files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      restoreMapping = data.items || data;
+      $("#mapping-select").value = "";
+      $("#loaded-mapping-info").textContent = `ファイルから読み込みました: ${restoreMapping.map(i => i.label).join("、")}`;
+    } catch { alert("JSONの読み込みに失敗しました"); }
+  };
+  reader.readAsText(file, "UTF-8");
+};
+
+$("#btn-restore").onclick = async () => {
+  if (!restoreMapping) { alert("対応表を選択してください"); return; }
+  const text = $("#processed-text").value;
+  if (!text.trim()) { alert("テキストを貼り付けてください"); return; }
+  const res = await fetch("/api/restore", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, items: restoreMapping }),
+  });
+  const data = await res.json();
+  $("#restored-text").value = data.text;
+  $("#restore-result-panel").style.display = "block";
+};
+
+$("#btn-copy-restored").onclick = () => copyText($("#restored-text"), $("#btn-copy-restored"));
+
+function copyText(textarea, btn) {
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = "コピーしました ✓";
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+</body>
+</html>
